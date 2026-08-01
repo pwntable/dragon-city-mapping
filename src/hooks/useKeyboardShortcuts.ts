@@ -49,6 +49,14 @@ export function useKeyboardShortcuts(options: ShortcutOptions) {
         return;
       }
 
+      if (isCmdOrCtrl && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        if (selectedItemId) {
+          useOptimizerStore.getState().duplicateStructure(selectedItemId);
+        }
+        return;
+      }
+
       if (isModalOpen) return;
 
       switch (e.key) {
@@ -63,6 +71,50 @@ export function useKeyboardShortcuts(options: ShortcutOptions) {
           break;
         case '4':
           setMode('grid-edit');
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          if (e.shiftKey) {
+            useOptimizerStore.getState().moveAllStructures(-1, 0);
+          } else if (selectedItemId) {
+            const state = useOptimizerStore.getState();
+            const active = state.islands[state.activeIsland] || [];
+            const item = active.find(s => s.id === selectedItemId);
+            if (item) state.moveStructure(selectedItemId, item.row - 1, item.col);
+          }
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          if (e.shiftKey) {
+            useOptimizerStore.getState().moveAllStructures(1, 0);
+          } else if (selectedItemId) {
+            const state = useOptimizerStore.getState();
+            const active = state.islands[state.activeIsland] || [];
+            const item = active.find(s => s.id === selectedItemId);
+            if (item) state.moveStructure(selectedItemId, item.row + 1, item.col);
+          }
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (e.shiftKey) {
+            useOptimizerStore.getState().moveAllStructures(0, -1);
+          } else if (selectedItemId) {
+            const state = useOptimizerStore.getState();
+            const active = state.islands[state.activeIsland] || [];
+            const item = active.find(s => s.id === selectedItemId);
+            if (item) state.moveStructure(selectedItemId, item.row, item.col - 1);
+          }
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          if (e.shiftKey) {
+            useOptimizerStore.getState().moveAllStructures(0, 1);
+          } else if (selectedItemId) {
+            const state = useOptimizerStore.getState();
+            const active = state.islands[state.activeIsland] || [];
+            const item = active.find(s => s.id === selectedItemId);
+            if (item) state.moveStructure(selectedItemId, item.row, item.col + 1);
+          }
           break;
         case 'Delete':
         case 'Backspace':

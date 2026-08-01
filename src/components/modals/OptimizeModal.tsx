@@ -52,7 +52,7 @@ export const OptimizeModal: React.FC<OptimizeModalProps> = ({ isOpen, onClose, o
           <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-xs text-amber-300">
             <AlertTriangle className="w-5 h-5 text-gold shrink-0 mt-0.5" />
             <p>
-              Auto-Jana akan menyusun habitat Level 7 (6x6), Ancient (6x6), dan 1x1 Crystal coverage secara optimum. Layout sedia ada akan digantikan (tindakan ini boleh di-Undo dengan <strong>Ctrl+Z</strong>).
+              Auto-Jana akan menyusun habitat Level 7 (6x6), Ancient (6x6), dan 2x2 Crystal coverage secara optimum. Layout sedia ada akan digantikan (tindakan ini boleh di-Undo dengan <strong>Ctrl+Z</strong>).
             </p>
           </div>
 

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { CanvasViewport } from './components/canvas/CanvasViewport';
-import { SelectionPanel } from './components/canvas/SelectionPanel';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { KeyboardHint } from './components/ui/KeyboardHint';
 import { ToastContainer, ToastMessage } from './components/ui/ToastContainer';
 import { OptimizeModal } from './components/modals/OptimizeModal';
 import { ShareModal } from './components/modals/ShareModal';
+import { IslandGridMapperModal } from './components/editor/IslandGridMapperModal';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useOptimizerStore } from './store/useOptimizerStore';
 import { decodeLayout } from './utils/shareEncoder';
@@ -15,7 +15,9 @@ export const App: React.FC = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isOptimizeOpen, setIsOptimizeOpen] = useState(false);
+  const [isMapperOpen, setIsMapperOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+
 
   const importLayout = useOptimizerStore((state) => state.importLayout);
 
@@ -72,6 +74,7 @@ export const App: React.FC = () => {
       <Header
         onOpenOptimizeModal={() => setIsOptimizeOpen(true)}
         onOpenShareModal={() => setIsShareOpen(true)}
+        onOpenMapperModal={() => setIsMapperOpen(true)}
         onToggleHelp={() => setIsHelpOpen((prev) => !prev)}
         onExportPNG={exportAsPNG}
         onToast={showToast}
@@ -84,15 +87,16 @@ export const App: React.FC = () => {
 
         {/* Canvas Viewport */}
         <div className="flex-1 relative flex overflow-hidden">
-          <CanvasViewport />
-          <SelectionPanel onToast={showToast} />
+          <CanvasViewport onToast={showToast} />
         </div>
       </div>
 
       {/* Modals */}
       <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} onToast={showToast} />
       <OptimizeModal isOpen={isOptimizeOpen} onClose={() => setIsOptimizeOpen(false)} onToast={showToast} />
+      <IslandGridMapperModal isOpen={isMapperOpen} onClose={() => setIsMapperOpen(false)} />
       <KeyboardHint isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+
     </div>
   );
 };

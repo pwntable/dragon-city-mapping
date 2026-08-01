@@ -12,9 +12,13 @@ import {
   ShieldAlert,
   Menu,
   X,
+  Shrink,
+  RotateCcw,
+  ImagePlay,
 } from 'lucide-react';
 import { ANCIENT_HABITATS, ANCIENT_WORLD_CRYSTALS, REGULAR_HABITATS } from '../../constants/habitats';
 import { ISLAND_CONFIGS } from '../../constants/islands';
+import { ISLAND_PRESETS } from '../../data/presets';
 import { useOptimizerStore } from '../../store/useOptimizerStore';
 import { ElementType, PlacementCategory, ToolMode } from '../../types';
 import { calculateBoostStats } from '../../utils/coverageCalculator';
@@ -37,6 +41,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onToast }) => {
   const setMode = useOptimizerStore((state) => state.setMode);
   const setPlacementCategory = useOptimizerStore((state) => state.setPlacementCategory);
   const setSelectedElementType = useOptimizerStore((state) => state.setSelectedElementType);
+  const compressGridToPlacedBuildings = useOptimizerStore((state) => state.compressGridToPlacedBuildings);
+  const resetIslandGridToTemplate = useOptimizerStore((state) => state.resetIslandGridToTemplate);
+  const loadIslandPreset = useOptimizerStore((state) => state.loadIslandPreset);
+
+  const hasPreset = !!ISLAND_PRESETS[activeIsland];
 
   const config = ISLAND_CONFIGS[activeIsland];
   const currentStructures = islands[activeIsland] || [];
@@ -118,12 +127,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onToast }) => {
         {/* Habitat & Boost Counts */}
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-elevated p-2 rounded-xl border border-subtle">
-            <span className="text-[10px] text-text-muted block font-semibold">Habitat</span>
-            <span className="text-xs font-black text-gold">{habitats.length}</span>
+            <span className="text-[10px] text-text-muted block font-semibold">Habitat (Limit)</span>
+            <span className={`text-xs font-black ${habitats.length >= (config.maxHabitats || 24) ? 'text-red-400' : 'text-gold'}`}>
+              {habitats.length} / {config.maxHabitats || 24}
+            </span>
             <span className="text-[9px] text-purple-400 font-semibold block">({ancientHabCount} Ancient)</span>
           </div>
           <div className="bg-elevated p-2 rounded-xl border border-subtle">
-            <span className="text-[10px] text-text-muted block font-semibold">Crystals (1x1)</span>
+            <span className="text-[10px] text-text-muted block font-semibold">Crystals (2x2)</span>
             <span className="text-xs font-black text-crystal">{crystals.length}</span>
             <span className="text-[9px] text-emerald-400 font-semibold block">
               +{totalBoostPercentage}% Boost ({boostedHabitatsCount} Hab)
@@ -173,6 +184,52 @@ export const Sidebar: React.FC<SidebarProps> = ({ onToast }) => {
             );
           })}
         </div>
+        <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+          <button
+            onClick={() => {
+              const res = compressGridToPlacedBuildings(activeIsland);
+              if (res.success) {
+                onToast(`Grid ${config.name} dikemaskan! (${res.count} bangunan, ${res.tiles} petak)`, 'success');
+              } else {
+                onToast(`Letakkan sekurang-kurangnya 1 habitat/crystal dahulu.`, 'warning');
+              }
+            }}
+            className="p-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold flex items-center justify-center gap-1 transition"
+            title="Mampatkan grid mengikut tapak habitat & crystal sahaja"
+          >
+            <Shrink className="w-3 h-3" />
+            <span>Compress Grid</span>
+          </button>
+          <button
+            onClick={() => {
+              resetIslandGridToTemplate(activeIsland);
+              onToast(`Grid ${config.name} telah di-reset ke template asal.`, 'info');
+            }}
+            className="p-1.5 rounded-xl bg-base hover:bg-elevated text-text-muted hover:text-text-primary border border-subtle text-[11px] font-bold flex items-center justify-center gap-1 transition"
+            title="Reset grid mask kepada rupa asal pulau"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Reset Grid</span>
+          </button>
+        </div>
+        {/* Screenshot Preset Loader — only visible for islands that have a preset */}
+        {hasPreset && (
+          <button
+            onClick={() => {
+              const res = loadIslandPreset(activeIsland);
+              if (res.success) {
+                onToast(`📸 Layout screenshot ${config.name} berjaya dimuatkan! (${res.count} struktur)`, 'success');
+              } else {
+                onToast(`Tiada preset tersedia untuk ${config.name}.`, 'warning');
+              }
+            }}
+            className="mt-1.5 w-full p-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[11px] font-bold flex items-center justify-center gap-1.5 transition"
+            title={`Muat layout yang diekstrak dari screenshot ${config.name}`}
+          >
+            <ImagePlay className="w-3.5 h-3.5" />
+            <span>📸 Load Screenshot Layout</span>
+          </button>
+        )}
       </div>
 
       {/* Element Selection Palette */}
@@ -334,7 +391,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onToast }) => {
           <ShieldAlert className="w-3.5 h-3.5 text-gold" />
           <span>Sistem Liputan Crystal</span>
         </div>
-        <p>• <strong className="text-crystal">Radius Liputan:</strong> 5 petak (~11x11 sekeliling Crystal 1x1).</p>
+        <p>• <strong className="text-crystal">Radius Liputan:</strong> 5 petak (~12x12 sekeliling Crystal 2x2).</p>
         <p>• <strong className="text-gold">Production Boost:</strong> +20% Gold Rate per Crystal elemen sama.</p>
         <p>• <strong className="text-emerald-400">Stacking:</strong> Cumulative (+20%, +40%, +60%, +80% max).</p>
       </div>

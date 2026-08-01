@@ -1,7 +1,7 @@
 import { ISLAND_CONFIGS } from '../constants/islands';
 import { ANCIENT_HABITATS, REGULAR_HABITATS } from '../constants/habitats';
 import { ElementType, IslandId, PlacedStructure } from '../types';
-import { canPlaceStructure, recalculateCrystalCoverage } from './coverageCalculator';
+import { canPlaceStructure, isCrystalBoostingHabitat, recalculateCrystalCoverage } from './coverageCalculator';
 
 const ISLAND_ELEMENT_MAP: Record<IslandId, { regular: ElementType[]; ancient: ElementType[] }> = {
   lava: { regular: ['flame', 'war', 'dark'], ancient: ['chaos'] },
@@ -9,6 +9,16 @@ const ISLAND_ELEMENT_MAP: Record<IslandId, { regular: ElementType[]; ancient: El
   lush: { regular: ['light', 'pure', 'legend', 'primal'], ancient: ['happy'] },
   desert: { regular: ['electric', 'ice'], ancient: ['magic', 'dream'] },
   ivory: { regular: ['metal'], ancient: ['soul'] },
+  skull: { regular: ['dark', 'war'], ancient: ['chaos'] },
+  rainbow: { regular: ['pure', 'legend'], ancient: ['happy'] },
+  ice: { regular: ['ice', 'sea'], ancient: ['dream'] },
+  gothic: { regular: ['dark', 'flame'], ancient: ['magic'] },
+  rune: { regular: ['terra', 'metal'], ancient: ['soul'] },
+  futuristic: { regular: ['electric', 'metal'], ancient: ['beauty'] },
+  moon: { regular: ['light', 'dark'], ancient: ['dream'] },
+  tempest: { regular: ['wind', 'sea'], ancient: ['chaos'] },
+  jurassic: { regular: ['primal', 'nature'], ancient: ['happy'] },
+  chronos: { regular: ['legend', 'pure'], ancient: ['magic'] },
 };
 
 /**
@@ -117,38 +127,71 @@ export function runAutoOptimizer(islandId: IslandId, customGrid?: number[][]): P
     }
   }
 
-  // 4. Place 1x1 Crystals inside 5-tile coverage radius of matching habitats
-  const crystalCounts: Record<string, number> = {};
-  regularElements.forEach(e => (crystalCounts[e.id] = 0));
+  // 4. Place 2x2 Crystals using Smart Scored Grid Search for maximum matching habitat coverage
+  regularElements.forEach(elem => {
+    const matchingHabitats = structures.filter(s => s.kind === 'habitat' && !s.isAncient && s.type === elem.id);
+    if (matchingHabitats.length === 0) return;
 
-  structures.forEach(s => {
-    if (s.kind === 'habitat' && !s.isAncient && crystalCounts[s.type] < 4) {
-      const habType = s.type;
-      for (let r = Math.max(0, s.row - 2); r <= Math.min(rows - 1, s.row + s.size + 1); r++) {
-        for (let c = Math.max(0, s.col - 2); c <= Math.min(cols - 1, s.col + s.size + 1); c++) {
-          if (crystalCounts[habType] >= 4) break;
-          if (canPlaceStructure(r, c, 1, grid, structures)) {
-            const elem = REGULAR_HABITATS.find(e => e.id === habType);
-            if (elem) {
-              counter++;
-              structures.push({
-                id: `crys_${islandId}_${timestamp}_${counter}`,
-                type: elem.id,
-                kind: 'crystal',
-                name: `${elem.name} Crystal`,
-                color: elem.color,
-                isAncient: false,
-                level: 1,
-                maxLevel: 1,
-                capacities: [0],
-                row: r,
-                col: c,
-                size: 1,
-              });
-              crystalCounts[habType]++;
+    for (let crystalIndex = 0; crystalIndex < 4; crystalIndex++) {
+      recalculateCrystalCoverage(structures);
+
+      let bestScore = -1;
+      let bestPos: { r: number; c: number } | null = null;
+
+      for (let r = 0; r <= rows - 2; r++) {
+        for (let c = 0; c <= cols - 2; c++) {
+          if (!canPlaceStructure(r, c, 2, grid, structures)) continue;
+
+          const dummyCrystal: PlacedStructure = {
+            id: `temp_crys`,
+            type: elem.id,
+            kind: 'crystal',
+            name: `${elem.name} Crystal`,
+            color: elem.color,
+            isAncient: false,
+            level: 1,
+            maxLevel: 1,
+            capacities: [0],
+            row: r,
+            col: c,
+            size: 2,
+          };
+
+          let score = 0;
+          matchingHabitats.forEach(hab => {
+            if (isCrystalBoostingHabitat(dummyCrystal, hab)) {
+              const currentBoosts = (hab.boostingCrystalIds || []).length;
+              if (currentBoosts < 4) {
+                // Score = weighted by habitat level (higher level habitats prioritized) & remaining boost headroom
+                score += hab.level * (4 - currentBoosts);
+              }
             }
+          });
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestPos = { r, c };
           }
         }
+      }
+
+      // If we found a valid position (even if bestScore is 0, place near matching habitat if possible)
+      if (bestPos && bestScore >= 0) {
+        counter++;
+        structures.push({
+          id: `crys_${islandId}_${timestamp}_${counter}`,
+          type: elem.id,
+          kind: 'crystal',
+          name: `${elem.name} Crystal`,
+          color: elem.color,
+          isAncient: false,
+          level: 1,
+          maxLevel: 1,
+          capacities: [0],
+          row: bestPos.r,
+          col: bestPos.c,
+          size: 2,
+        });
       }
     }
   });

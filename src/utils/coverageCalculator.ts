@@ -11,11 +11,12 @@ export function isCrystalBoostingHabitat(crystal: PlacedStructure, habitat: Plac
   // Crystal element must match habitat element
   if (crystal.type !== habitat.type) return false;
 
-  // Spatial coverage intersection (5-tile radius around 1x1 crystal = 11x11 bounding box)
+  const crystalSize = crystal.size || 2;
+  // Spatial coverage intersection (5-tile radius around 2x2 crystal = 12x12 bounding box)
   const minCRow = crystal.row - CRYSTAL_CONFIG.radius;
-  const maxCRow = crystal.row + CRYSTAL_CONFIG.radius;
+  const maxCRow = crystal.row + crystalSize - 1 + CRYSTAL_CONFIG.radius;
   const minCCol = crystal.col - CRYSTAL_CONFIG.radius;
-  const maxCCol = crystal.col + CRYSTAL_CONFIG.radius;
+  const maxCCol = crystal.col + crystalSize - 1 + CRYSTAL_CONFIG.radius;
 
   const habMaxRow = habitat.row + habitat.size - 1;
   const habMaxCol = habitat.col + habitat.size - 1;
@@ -31,24 +32,33 @@ export function isCrystalBoostingHabitat(crystal: PlacedStructure, habitat: Plac
  * Recalculates crystal coverage and updates boost percents and reference arrays in place or returns clone.
  */
 export function recalculateCrystalCoverage(structures: PlacedStructure[]): PlacedStructure[] {
-  const habitats = structures.filter(s => s.kind === 'habitat');
-  const crystals = structures.filter(s => s.kind === 'crystal');
-
-  // Reset counters
-  habitats.forEach(h => {
-    h.boostPercent = 0;
-    h.boostingCrystalIds = [];
+  // Create shallow clones of structures with reset boost parameters to avoid mutating frozen state objects
+  const updatedStructures: PlacedStructure[] = structures.map((s) => {
+    if (s.kind === 'habitat') {
+      return {
+        ...s,
+        boostPercent: 0,
+        boostingCrystalIds: [],
+      };
+    }
+    if (s.kind === 'crystal') {
+      return {
+        ...s,
+        size: 2,
+        affectedHabitatIds: [],
+      };
+    }
+    return { ...s };
   });
 
-  crystals.forEach(c => {
-    c.affectedHabitatIds = [];
-  });
+  const habitats = updatedStructures.filter((s) => s.kind === 'habitat');
+  const crystals = updatedStructures.filter((s) => s.kind === 'crystal');
 
   // Calculate intersections
-  habitats.forEach(hab => {
+  habitats.forEach((hab) => {
     if (hab.isAncient) return;
 
-    crystals.forEach(crys => {
+    crystals.forEach((crys) => {
       if (isCrystalBoostingHabitat(crys, hab)) {
         // Cap max boost percentage per habitat
         const currentBoost = hab.boostPercent || 0;
@@ -64,7 +74,46 @@ export function recalculateCrystalCoverage(structures: PlacedStructure[]): Place
     });
   });
 
-  return structures;
+  return updatedStructures;
+}
+
+/**
+ * Returns matching and non-matching habitats within the 5-tile radius of a crystal.
+ */
+export function getHabitatsInCrystalRange(
+  crystal: PlacedStructure,
+  structures: PlacedStructure[]
+): { matching: PlacedStructure[]; nonMatching: PlacedStructure[] } {
+  const matching: PlacedStructure[] = [];
+  const nonMatching: PlacedStructure[] = [];
+
+  if (crystal.kind !== 'crystal') return { matching, nonMatching };
+
+  const crystalSize = crystal.size || 2;
+  const minCRow = crystal.row - CRYSTAL_CONFIG.radius;
+  const maxCRow = crystal.row + crystalSize - 1 + CRYSTAL_CONFIG.radius;
+  const minCCol = crystal.col - CRYSTAL_CONFIG.radius;
+  const maxCCol = crystal.col + crystalSize - 1 + CRYSTAL_CONFIG.radius;
+
+  structures.forEach((hab) => {
+    if (hab.kind !== 'habitat' || hab.isAncient) return;
+
+    const habMaxRow = hab.row + hab.size - 1;
+    const habMaxCol = hab.col + hab.size - 1;
+
+    const rowIntersect = !(hab.row > maxCRow || habMaxRow < minCRow);
+    const colIntersect = !(hab.col > maxCCol || habMaxCol < minCCol);
+
+    if (rowIntersect && colIntersect) {
+      if (hab.type === crystal.type) {
+        matching.push(hab);
+      } else {
+        nonMatching.push(hab);
+      }
+    }
+  });
+
+  return { matching, nonMatching };
 }
 
 /**

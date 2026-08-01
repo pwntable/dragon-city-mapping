@@ -1,4 +1,19 @@
-export type IslandId = 'lava' | 'main' | 'lush' | 'ivory' | 'desert';
+export type IslandId =
+  | 'lava'
+  | 'main'
+  | 'lush'
+  | 'ivory'
+  | 'desert'
+  | 'skull'
+  | 'rainbow'
+  | 'ice'
+  | 'gothic'
+  | 'rune'
+  | 'futuristic'
+  | 'moon'
+  | 'tempest'
+  | 'jurassic'
+  | 'chronos';
 
 export type ElementType =
   | 'terra'
@@ -69,6 +84,7 @@ export interface IslandConfig {
   name: string;
   cols: number;
   rows: number;
+  maxHabitats: number;
   biomeAccentColor: string;
   icon: string;
   gridTemplate: number[][]; // 1 = buildable land, 0 = non-buildable water/obstacle
@@ -85,6 +101,8 @@ export type Action =
   | { type: 'DOWNGRADE'; island: IslandId; id: string; fromLevel: number; toLevel: number; fromSize: number; toSize: number }
   | { type: 'MOVE'; island: IslandId; id: string; fromRow: number; fromCol: number; toRow: number; toCol: number }
   | { type: 'CLEAR'; island: IslandId; structures: PlacedStructure[] }
+  | { type: 'GRID_TILE'; island: IslandId; row: number; col: number; fromVal: number; toVal: number; removedStructures?: PlacedStructure[] }
+  | { type: 'SET_GRID'; island: IslandId; prevGrid: number[][]; newGrid: number[][] }
   | { type: 'BATCH'; actions: Action[] };
 
 export interface LayoutState {

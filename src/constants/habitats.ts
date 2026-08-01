@@ -1,7 +1,7 @@
 import { CrystalDef, HabitatDef } from '../types';
 
 export const CRYSTAL_CONFIG = {
-  radius: 5,                  // Coverage Radius = 5 tiles (approx 11x11 area around 1x1 crystal center)
+  radius: 5,                  // Coverage Radius = 5 tiles (approx 12x12 area around 2x2 crystal)
   goldBoostPercent: 20,        // +20% Gold Production Rate per matching element crystal
   maxCrystalsPerHabitat: 4,    // Cap at +80% boost (4 crystals max per matching element)
   supportsAncientHabitat: false, // Ancient Habitats ignore crystal boosts
